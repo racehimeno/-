@@ -22,7 +22,7 @@
             content: " *";
             color: #ef4444; /* red-500 */
         }
-        /* ★★★ ファイル削除ボタンのスタイルを追加 ★★★ */
+        /* ファイル削除ボタンのスタイル */
         .file-remove-btn {
             background-color: #ef4444; /* red-500 */
             color: white;
@@ -86,7 +86,7 @@
                 <textarea id="orderContent" required rows="6" class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="ご希望の商品名、数量、色などを自由にご記入ください。&#10;例：&#10;・商品A x 5&#10;・商品B x 1 (色：赤)"></textarea>
             </div>
 
-            <!-- ★★★ ファイル添付セクションを追加 ★★★ -->
+            <!-- ファイル添付セクション -->
             <div class="space-y-2">
                 <label class="block text-sm font-medium text-gray-700">添付ファイル (任意, 3つまで)</label>
                 <div class="flex items-center justify-center w-full">
@@ -135,8 +135,8 @@
         const statusMessage = document.getElementById('statusMessage');
         const userIdDisplay = document.getElementById('userIdDisplay');
         const deliveryDateInput = document.getElementById('deliveryDate');
-        const fileInput = document.getElementById('fileInput'); // ★★★ 追加
-        const fileListDiv = document.getElementById('fileList'); // ★★★ 追加
+        const fileInput = document.getElementById('fileInput');
+        const fileListDiv = document.getElementById('fileList');
 
         // グローバル変数
         let liffContext = {
@@ -144,7 +144,7 @@
             displayName: null,
             chatRoomId: null
         };
-        let uploadedFiles = []; // ★★★ 追加
+        let uploadedFiles = [];
 
         /**
          * ページの読み込みが完了したときの処理
@@ -152,7 +152,8 @@
         window.onload = function() {
             // 納品希望日の初期値を今日に設定
             const today = new Date();
-            constPQAry = today.getFullYear();
+            // ★★★ ここを修正しました ★★★
+            const yyyy = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
             deliveryDateInput.value = `${yyyy}-${mm}-${dd}`;
@@ -191,7 +192,7 @@
             }
         }
         
-        // ★★★ ファイル処理のロジックを追加 ★★★
+        // ファイル処理のロジック
         fileInput.addEventListener('change', (event) => {
             const files = event.target.files;
             if (uploadedFiles.length + files.length > 3) {
@@ -271,7 +272,7 @@
             const payload = {
                 ...liffContext,
                 ...formData,
-                files: uploadedFiles // ★★★ ファイルデータをペイロードに追加 ★★★
+                files: uploadedFiles
             };
 
             try {
@@ -286,8 +287,8 @@
                 if (response.ok && result.status === 'success') {
                     displayStatus('ご注文が完了しました。確認メッセージをLINEに送信しました。', 'success');
                     orderForm.reset();
-                    uploadedFiles = []; // ★★★ ファイル配列をリセット
-                    renderFileList();   // ★★★ ファイルリスト表示をリセット
+                    uploadedFiles = [];
+                    renderFileList();
                     setTimeout(() => liff.closeWindow(), 2000);
                 } else {
                     throw new Error(result.message || 'サーバーでエラーが発生しました。');
