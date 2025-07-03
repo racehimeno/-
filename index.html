@@ -22,6 +22,21 @@
             content: " *";
             color: #ef4444; /* red-500 */
         }
+        /* ★★★ ファイル削除ボタンのスタイルを追加 ★★★ */
+        .file-remove-btn {
+            background-color: #ef4444; /* red-500 */
+            color: white;
+            border-radius: 9999px;
+            width: 1.5rem;
+            height: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: bold;
+            transition: background-color 0.2s;
+        }
+        .file-remove-btn:hover { background-color: #dc2626; } /* red-600 */
     </style>
     <!-- LIFF SDK -->
     <script src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
@@ -71,6 +86,24 @@
                 <textarea id="orderContent" required rows="6" class="mt-1 block w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500" placeholder="ご希望の商品名、数量、色などを自由にご記入ください。&#10;例：&#10;・商品A x 5&#10;・商品B x 1 (色：赤)"></textarea>
             </div>
 
+            <!-- ★★★ ファイル添付セクションを追加 ★★★ -->
+            <div class="space-y-2">
+                <label class="block text-sm font-medium text-gray-700">添付ファイル (任意, 3つまで)</label>
+                <div class="flex items-center justify-center w-full">
+                    <label for="fileInput" class="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100">
+                        <div class="flex flex-col items-center justify-center pt-5 pb-6">
+                            <i class="bi bi-cloud-arrow-up-fill text-4xl text-gray-400"></i>
+                            <p class="mb-2 text-sm text-gray-500"><span class="font-semibold">クリックしてファイルを選択</span></p>
+                            <p class="text-xs text-gray-500">画像, PDFなど (各10MBまで)</p>
+                        </div>
+                        <input id="fileInput" type="file" class="hidden" multiple accept="image/*, .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx">
+                    </label>
+                </div>
+                <div id="fileList" class="mt-4 space-y-2">
+                    <!-- 選択されたファイルがここに表示されます -->
+                </div>
+            </div>
+
             <!-- 送信ボタン -->
             <div>
                 <button type="submit" id="submitButton" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-300">
@@ -102,6 +135,8 @@
         const statusMessage = document.getElementById('statusMessage');
         const userIdDisplay = document.getElementById('userIdDisplay');
         const deliveryDateInput = document.getElementById('deliveryDate');
+        const fileInput = document.getElementById('fileInput'); // ★★★ 追加
+        const fileListDiv = document.getElementById('fileList'); // ★★★ 追加
 
         // グローバル変数
         let liffContext = {
@@ -109,6 +144,7 @@
             displayName: null,
             chatRoomId: null
         };
+        let uploadedFiles = []; // ★★★ 追加
 
         /**
          * ページの読み込みが完了したときの処理
@@ -116,7 +152,7 @@
         window.onload = function() {
             // 納品希望日の初期値を今日に設定
             const today = new Date();
-            const yyyy = today.getFullYear();
+            constPQAry = today.getFullYear();
             const mm = String(today.getMonth() + 1).padStart(2, '0');
             const dd = String(today.getDate()).padStart(2, '0');
             deliveryDateInput.value = `${yyyy}-${mm}-${dd}`;
@@ -137,7 +173,6 @@
                     return;
                 }
                 
-                // ユーザープロファイルとコンテキストを取得
                 const profile = await liff.getProfile();
                 const context = liff.getContext();
 
@@ -155,6 +190,59 @@
                 displayStatus('LIFFの初期化に失敗しました。', 'error');
             }
         }
+        
+        // ★★★ ファイル処理のロジックを追加 ★★★
+        fileInput.addEventListener('change', (event) => {
+            const files = event.target.files;
+            if (uploadedFiles.length + files.length > 3) {
+                displayStatus('添付ファイルは3つまでです。', 'error');
+                return;
+            }
+
+            for (const file of files) {
+                if (file.size > 10 * 1024 * 1024) { // 10MB 制限
+                    displayStatus(`ファイルサイズが10MBを超えています: ${file.name}`, 'error');
+                    continue;
+                }
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    uploadedFiles.push({
+                        name: file.name,
+                        type: file.type,
+                        data: e.target.result // Base64データURL
+                    });
+                    renderFileList();
+                };
+                reader.readAsDataURL(file);
+            }
+            fileInput.value = ''; // 同じファイルを再度選択できるようにリセット
+        });
+
+        function renderFileList() {
+            fileListDiv.innerHTML = '';
+            uploadedFiles.forEach((file, index) => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'flex items-center justify-between bg-gray-100 p-2 rounded-lg';
+                fileItem.innerHTML = `
+                    <div class="flex items-center overflow-hidden">
+                        <i class="bi bi-file-earmark-text-fill text-gray-500 mr-2"></i>
+                        <span class="text-sm text-gray-700 truncate">${file.name}</span>
+                    </div>
+                    <button type="button" data-index="${index}" class="file-remove-btn">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                `;
+                fileListDiv.appendChild(fileItem);
+            });
+
+            document.querySelectorAll('.file-remove-btn').forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const indexToRemove = parseInt(e.currentTarget.dataset.index, 10);
+                    uploadedFiles.splice(indexToRemove, 1);
+                    renderFileList();
+                });
+            });
+        }
 
         /**
          * フォーム送信時の処理
@@ -167,11 +255,9 @@
                 return;
             }
 
-            // ボタンを無効化し、送信中メッセージを表示
             setSubmitting(true);
             displayStatus('データを送信しています...', 'loading');
 
-            // フォームデータをまとめる
             const formData = {
                 companyName: document.getElementById('companyName').value,
                 fullName: document.getElementById('fullName').value,
@@ -183,8 +269,9 @@
 
             // バックエンドに送信するデータ
             const payload = {
-                ...liffContext, // userId, displayName, chatRoomId
-                ...formData      // フォーム入力内容
+                ...liffContext,
+                ...formData,
+                files: uploadedFiles // ★★★ ファイルデータをペイロードに追加 ★★★
             };
 
             try {
@@ -198,8 +285,9 @@
 
                 if (response.ok && result.status === 'success') {
                     displayStatus('ご注文が完了しました。確認メッセージをLINEに送信しました。', 'success');
-                    orderForm.reset(); // フォームをリセット
-                    // 2秒後にLIFFを閉じる
+                    orderForm.reset();
+                    uploadedFiles = []; // ★★★ ファイル配列をリセット
+                    renderFileList();   // ★★★ ファイルリスト表示をリセット
                     setTimeout(() => liff.closeWindow(), 2000);
                 } else {
                     throw new Error(result.message || 'サーバーでエラーが発生しました。');
@@ -208,13 +296,12 @@
             } catch (error) {
                 console.error('Submission failed:', error);
                 displayStatus(`エラーが発生しました: ${error.message}`, 'error');
-                setSubmitting(false); // エラー時はボタンを再度有効化
+                setSubmitting(false);
             }
         });
 
         /**
          * 送信ボタンの状態を更新する
-         * @param {boolean} isSubmitting - 送信中かどうか
          */
         function setSubmitting(isSubmitting) {
             submitButton.disabled = isSubmitting;
@@ -231,8 +318,6 @@
 
         /**
          * ステータスメッセージを表示する
-         * @param {string} message - 表示するメッセージ
-         * @param {'success'|'error'|'loading'} type - メッセージの種類
          */
         function displayStatus(message, type) {
             statusMessage.textContent = message;
